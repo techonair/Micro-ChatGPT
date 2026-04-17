@@ -52,6 +52,17 @@ Base path: `/api/v1`
 - `POST /conversations/{conversation_id}/messages` (add message to existing conversation)
 - `DELETE /conversations/{conversation_id}?user_id=...` (delete conversation + messages)
 - `GET /history/{user_id}` (optional `session_id` query)
+- `POST /documents` (ingest a document for RAG retrieval)
+- `GET /documents` (list documents available for retrieval)
+
+## RAG Document Chat
+
+Use the existing `/chat` endpoint with these additional request fields to enable retrieval-augmented generation:
+
+- `use_rag`: `true` to retrieve relevant documents before generating a response
+- `top_k`: number of top documents to include in the prompt (default `3`)
+
+When `use_rag` is enabled, the service retrieves the most relevant documents from the ingested document store, prepends them as context, and then sends the combined prompt to the LLM.
 
 ## Docker
 
