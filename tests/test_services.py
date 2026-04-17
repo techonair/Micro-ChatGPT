@@ -12,6 +12,7 @@ from app.repositories.conversations.base import (
 )
 from app.services.context_manager import ContextManager
 from app.services.cost_tracker import CostTracker
+from app.services.rag_service import DocumentSnippet
 
 
 class FakeRepo(ConversationRepository):
@@ -113,6 +114,41 @@ async def test_context_manager_creates_summary_when_context_exceeds_limit():
 
     assert len(messages) > 0
     assert len(repo.summaries) >= 1
+
+
+class FakeRAGService:
+    def __init__(self):
+        self.snippets = [
+            DocumentSnippet(
+                id="doc-1",
+                title="Test Doc",
+                content="This is a relevant document snippet.",
+                score=0.9,
+            )
+        ]
+
+    async def search(self, query: str, top_k: int = 3):
+        return self.snippets[:top_k]
+
+
+@pytest.mark.asyncio
+async def test_context_manager_includes_rag_document_context():
+    repo = FakeRepo()
+    rag_service = FakeRAGService()
+    cm = ContextManager(settings=TinySettings(), repo=repo, rag_service=rag_service)
+
+    messages = await cm.build_messages(
+        user_id="u1",
+        session_id="s1",
+        provider="openai",
+        user_message="query",
+        use_rag=True,
+        top_k=1,
+    )
+
+    assert any(m.role == "system" and "Use only the following documents" in m.content for m in messages)
+    assert any(m.role == "system" and "Test Doc" in m.content for m in messages)
+    assert any(m.role == "user" and m.content == "query" for m in messages)
 
 
 def test_cost_tracker_estimation():

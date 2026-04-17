@@ -6,12 +6,14 @@ from app.repositories.conversations.base import (
     ConversationTurnRecord,
 )
 from app.services.llm.base import ChatMessage
+from app.services.rag_service import RAGService
 
 
 class ContextManager:
-    def __init__(self, *, settings, repo: ConversationRepository) -> None:
+    def __init__(self, *, settings, repo: ConversationRepository, rag_service: RAGService) -> None:
         self.settings = settings
         self.repo = repo
+        self.rag_service = rag_service
 
     async def build_messages(
         self,
@@ -20,9 +22,14 @@ class ContextManager:
         session_id: str,
         provider: str,
         user_message: str,
+        use_rag: bool = False,
+        top_k: int = 3,
     ) -> list[ChatMessage]:
-        messages = await self._build_from_repository(user_id=user_id, session_id=session_id)
+        messages: list[ChatMessage] = []
+        if use_rag:
+            messages.extend(await self._build_rag_context(user_message=user_message, top_k=top_k))
 
+        messages.extend(await self._build_from_repository(user_id=user_id, session_id=session_id))
         messages.append(ChatMessage(role="user", content=user_message))
         messages = await self._fit_context_limit(
             messages=messages,
@@ -31,6 +38,31 @@ class ContextManager:
             provider=provider,
         )
         return messages
+
+    async def _build_rag_context(self, *, user_message: str, top_k: int) -> list[ChatMessage]:
+        snippets = await self.rag_service.search(query=user_message, top_k=top_k)
+        if not snippets:
+            return []
+
+        document_payload = "\n\n".join(
+            self._format_document(index + 1, snippet)
+            for index, snippet in enumerate(snippets)
+        )
+        instructions = (
+            "You are a helpful assistant. Use only the following documents to answer the user’s question. "
+            "If the answer is not contained in these documents, say you do not know. Do not hallucinate.\n\n"
+            f"{document_payload}"
+        )
+
+        return [ChatMessage(role="system", content=instructions)]
+
+    @staticmethod
+    def _format_document(index: int, snippet) -> str:
+        title = snippet.title or "Untitled document"
+        content = snippet.content.strip()
+        if len(content) > 1200:
+            content = content[:1200].rsplit(" ", 1)[0] + "..."
+        return f"Document {index}: {title}\n{content}"
 
     async def _build_from_repository(self, *, user_id: str, session_id: str) -> list[ChatMessage]:
         summaries = await self.repo.list_summaries(user_id=user_id, session_id=session_id, limit=1)

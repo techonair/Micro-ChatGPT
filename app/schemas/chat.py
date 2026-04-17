@@ -16,6 +16,8 @@ class ChatRequest(BaseModel):
     session_id: str | None = None
     provider: ProviderName = ProviderName.openai
     model: str | None = None
+    use_rag: bool = False
+    top_k: int = Field(default=3, ge=1, le=10)
 
 
 class TokenUsage(BaseModel):

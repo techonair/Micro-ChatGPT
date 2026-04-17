@@ -11,6 +11,7 @@ from app.schemas.chat import ChatRequest, ChatResponse, TokenUsage
 from app.services.context_manager import ContextManager
 from app.services.cost_tracker import CostTracker
 from app.services.llm.factory import LLMProviderFactory
+from app.services.rag_service import RAGService
 from app.utils.monitoring import LLM_CALL_COUNT
 
 
@@ -23,12 +24,14 @@ class ChatService:
         llm_factory: LLMProviderFactory,
         context_manager: ContextManager,
         cost_tracker: CostTracker,
+        rag_service: RAGService,
     ) -> None:
         self.db_session = db_session
         self.repo = repo
         self.llm_factory = llm_factory
         self.context_manager = context_manager
         self.cost_tracker = cost_tracker
+        self.rag_service = rag_service
 
     async def send_message(self, payload: ChatRequest) -> ChatResponse:
         user_exists = await self.db_session.scalar(select(User.id).where(User.id == payload.user_id))
@@ -44,6 +47,8 @@ class ChatService:
             session_id=session_id,
             provider=provider_name,
             user_message=payload.message,
+            use_rag=payload.use_rag,
+            top_k=payload.top_k,
         )
 
         model = payload.model or ""

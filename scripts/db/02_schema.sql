@@ -43,3 +43,14 @@ CREATE TABLE IF NOT EXISTS conversation_summaries (
 CREATE INDEX IF NOT EXISTS ix_conversation_summaries_user_id ON conversation_summaries (user_id);
 CREATE INDEX IF NOT EXISTS ix_conversation_summaries_session_id ON conversation_summaries (session_id);
 CREATE INDEX IF NOT EXISTS ix_conversation_summaries_covered_until ON conversation_summaries (covered_until);
+
+CREATE TABLE IF NOT EXISTS documents (
+  id VARCHAR(36) PRIMARY KEY,
+  title VARCHAR(255),
+  content TEXT NOT NULL,
+  metadata TEXT,
+  embedding TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_documents_created_at ON documents (created_at);

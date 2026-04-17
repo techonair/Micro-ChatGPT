@@ -381,7 +381,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"message\": \"{{chatMessage}}\",\n  \"session_id\": \"{{sessionId}}\",\n  \"provider\": \"{{provider}}\",\n  \"model\": \"{{model}}\"\n}"
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"message\": \"{{chatMessage}}\",\n  \"session_id\": \"{{sessionId}}\",\n  \"provider\": \"{{provider}}\",\n  \"model\": \"{{model}}\",\n  \"use_rag\": {{useRag}},\n  \"top_k\": {{topK}}\n}"
             },
             "url": {
               "raw": "{{baseUrl}}{{apiPrefix}}/chat",
@@ -394,6 +394,92 @@
               ]
             },
             "description": "Legacy chat endpoint. If sessionId is empty, server creates one and this request stores it."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Create Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Created document id exists', function () {",
+                  "  pm.expect(data.data.id).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{documentTitle}}\",\n  \"content\": \"{{documentContent}}\",\n  \"metadata\": {\"source\": \"{{documentSource}}\"}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{apiPrefix}}",
+                "documents"
+              ]
+            },
+            "description": "Create a document for RAG retrieval."
+          },
+          "response": []
+        },
+        {
+          "name": "List Documents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "pm.test('Documents array returned', function () {",
+                  "  pm.expect(data.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}{{apiPrefix}}/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "{{apiPrefix}}",
+                "documents"
+              ]
+            },
+            "description": "List documents available for RAG retrieval."
           },
           "response": []
         }
